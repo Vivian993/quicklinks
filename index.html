@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>我的捷徑</title>
+
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="我的捷徑">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#F6F1E7">
+<link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxODAgMTgwIj48ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9ImciIHgxPSIwIiB5MT0iMCIgeDI9IjEiIHkyPSIxIj48c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiNGNkYwRTMiLz48c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiNEOEQ3QjkiLz48L2xpbmVhckdyYWRpZW50PjwvZGVmcz48cmVjdCB3aWR0aD0iMTgwIiBoZWlnaHQ9IjE4MCIgcng9IjQwIiBmaWxsPSJ1cmwoI2cpIi8+PHJlY3QgeD0iNDIiIHk9IjUwIiB3aWR0aD0iNzAiIGhlaWdodD0iNTgiIHJ4PSI4IiBmaWxsPSJub25lIiBzdHJva2U9IiM2RjdENUQiIHN0cm9rZS13aWR0aD0iNSIvPjxjaXJjbGUgY3g9IjYyIiBjeT0iNzIiIHI9IjciIGZpbGw9IiNDMTk3ODgiLz48cGF0aCBkPSJNNDggMTAwIEw3MCA4MCBMODggOTUgTDEwNSA3NSBMMTA1IDEwMCBaIiBmaWxsPSIjNkY3RDVEIi8+PHBhdGggZD0iTTEyMCA2NSBMMTM4IDY1IE0xMzggNjUgTDEzMCA1NyBNMTM4IDY1IEwxMzAgNzMiIHN0cm9rZT0iI0E5Nzc2NCIgc3Ryb2tlLXdpZHRoPSI2IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIGZpbGw9Im5vbmUiLz48L3N2Zz4=">
+
+<style>
+  :root{
+    --paper:#F6F1E7; --paper-warm:#EFE7D8; --card:#FCFAF3;
+    --ink:#3E3A32; --ink-soft:#8B8272;
+    --sage:#7C8B6F; --sage-deep:#5F6E54;
+    --clay:#C19788; --clay-deep:#A97764;
+    --line:#E1D8C4; --shadow:0 6px 16px rgba(90,80,60,0.12);
+  }
+  *{ box-sizing:border-box; }
+  body{
+    margin:0;
+    background: radial-gradient(circle at 12% 8%, rgba(255,255,255,0.5), transparent 40%), var(--paper);
+    color:var(--ink); font-family:"Noto Serif TC","PMingLiU","Georgia",serif;
+    min-height:100vh; -webkit-font-smoothing:antialiased; padding-bottom:60px;
+  }
+  header.top{ padding:28px 20px 6px; text-align:center; }
+  header.top h1{ font-size:1.45rem; font-weight:600; letter-spacing:0.14em; margin:0 0 4px; color:var(--sage-deep); }
+  header.top p{ margin:0; font-size:0.76rem; letter-spacing:0.12em; color:var(--ink-soft); }
+
+  .toolbar{
+    display:flex; flex-wrap:wrap; gap:8px; align-items:center; justify-content:center;
+    padding:16px 16px 10px;
+  }
+  .search-box{
+    display:flex; align-items:center; gap:6px; background:var(--card);
+    border:1px solid var(--line); border-radius:999px; padding:7px 14px; min-width:150px; max-width:220px;
+  }
+  .search-box input{ border:none; outline:none; background:transparent; font-family:inherit; font-size:0.85rem; width:100%; color:var(--ink); }
+  .btn{
+    border:1px solid var(--line); background:var(--card); color:var(--sage-deep);
+    border-radius:999px; padding:8px 16px; font-family:inherit; font-size:0.82rem; cursor:pointer;
+  }
+  .btn:active{ transform:scale(0.96); }
+  .btn.primary{ background:var(--sage); border-color:var(--sage); color:#fff; }
+  .btn.on{ background:var(--clay-deep); border-color:var(--clay-deep); color:#fff; }
+
+  .grid{
+    display:grid; grid-template-columns:repeat(2, 1fr); gap:16px;
+    padding:6px 18px 30px; max-width:640px; margin:0 auto;
+  }
+  @media(min-width:480px){ .grid{ grid-template-columns:repeat(3, 1fr); } }
+
+  .item{
+    background:var(--card); border-radius:18px; overflow:hidden;
+    box-shadow:var(--shadow); border:1px solid var(--line); cursor:pointer;
+    position:relative; transition:transform .15s ease;
+  }
+  .item:active{ transform:scale(0.97); }
+  .item img{ width:100%; aspect-ratio:1/1; object-fit:cover; display:block; background:var(--paper-warm); }
+  .item .cap{ padding:9px 10px 11px; font-size:0.83rem; text-align:center; line-height:1.35;
+    display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  .item .del-x{
+    position:absolute; top:-6px; right:-6px; width:26px; height:26px; border-radius:50%;
+    background:var(--clay-deep); color:#fff; border:2px solid var(--paper); font-size:0.8rem; cursor:pointer;
+  }
+
+  .empty-state{ text-align:center; padding:70px 20px; color:var(--ink-soft); grid-column:1/-1; }
+  .empty-state .mark{ font-size:2.2rem; margin-bottom:10px; }
+  .empty-state p{ font-size:0.85rem; line-height:1.8; }
+
+  /* Modal */
+  .overlay{ position:fixed; inset:0; background:rgba(62,58,50,0.35); display:none; align-items:flex-end; justify-content:center; z-index:60; }
+  .overlay.show{ display:flex; }
+  .modal{
+    background:var(--paper); width:100%; max-width:460px; border-radius:22px 22px 0 0;
+    padding:20px 20px 26px; max-height:90vh; overflow-y:auto;
+    box-shadow:0 -8px 26px rgba(0,0,0,0.18); animation:up .22s ease;
+  }
+  @keyframes up{ from{ transform:translateY(30px); opacity:0;} to{ transform:translateY(0); opacity:1;} }
+  .modal h3{ margin:0 0 14px; font-size:1.05rem; text-align:center; color:var(--sage-deep); }
+  label.fl{ display:block; font-size:0.75rem; color:var(--ink-soft); letter-spacing:0.05em; margin:14px 0 6px; }
+  input[type=text]{
+    width:100%; font-family:inherit; font-size:0.9rem; padding:10px 12px; border-radius:10px;
+    border:1px solid var(--line); background:var(--card); color:var(--ink);
+  }
+  input:focus{ outline:2px solid var(--sage); outline-offset:1px; }
+  .cover-pick{ display:flex; gap:14px; align-items:center; margin-top:8px; }
+  .cover-preview{ width:84px; height:84px; border-radius:14px; object-fit:cover; border:1px solid var(--line); background:var(--paper-warm); }
+  .hint{ font-size:0.7rem; color:var(--ink-soft); line-height:1.6; margin-top:4px; }
+  .modal-actions{ display:flex; gap:10px; margin-top:22px; }
+  .modal-actions button{
+    flex:1; font-family:inherit; font-size:0.85rem; padding:11px; border-radius:999px;
+    border:1px solid var(--line); background:var(--card); color:var(--sage-deep); cursor:pointer;
+  }
+  .modal-actions .primary{ background:var(--sage); border-color:var(--sage); color:#fff; }
+  .modal-actions .danger{ border-color:#d99a91; color:#a95a4d; }
+
+  .storage-note{ text-align:center; font-size:0.68rem; color:var(--ink-soft); padding:16px 20px 0; }
+  #importFile{ display:none; }
+  .toast{
+    position:fixed; bottom:24px; left:50%; transform:translateX(-50%);
+    background:var(--sage-deep); color:#fff; padding:10px 20px; border-radius:999px;
+    font-size:0.8rem; box-shadow:var(--shadow); z-index:100; opacity:0; pointer-events:none; transition:opacity .3s;
+  }
+  .toast.show{ opacity:1; }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <h1>我 的 捷 徑</h1>
+  <p>點圖片，直接到網頁</p>
+</header>
+
+<div class="toolbar">
+  <div class="search-box"><span>🔍</span><input type="text" id="searchInput" placeholder="搜尋..."></div>
+  <button class="btn primary" id="addBtn">＋ 新增</button>
+  <button class="btn" id="editModeBtn">✏️ 編輯</button>
+  <button class="btn" id="exportBtn">匯出</button>
+  <button class="btn" id="importBtn">匯入</button>
+  <input type="file" id="importFile" accept="application/json">
+</div>
+
+<div class="grid" id="grid"></div>
+<p class="storage-note" id="storageNote"></p>
+
+<div class="overlay" id="editorOverlay">
+  <div class="modal">
+    <h3 id="modalTitle">新增捷徑</h3>
+
+    <label class="fl">名稱</label>
+    <input type="text" id="fTitle" placeholder="例如：學校聯絡簿系統">
+
+    <label class="fl">網址（點圖片後會打開這個網頁）</label>
+    <input type="text" id="fUrl" placeholder="https://...">
+
+    <label class="fl">封面圖片</label>
+    <div class="cover-pick">
+      <img id="coverPreview" class="cover-preview" src="">
+      <div>
+        <input type="file" id="fCoverFile" accept="image/*">
+        <div class="hint">直接從相簿選照片即可，會自動壓縮存在手機本機。沒有上傳的話會自動配一張插畫封面。</div>
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="primary" id="saveBtn">儲存</button>
+      <button class="danger" id="deleteBtn" style="display:none;">刪除</button>
+      <button id="cancelBtn">取消</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const STORAGE_KEY = "quickLinksItems_v1";
+
+function loadItems(){
+  try{ const raw = localStorage.getItem(STORAGE_KEY); return raw ? JSON.parse(raw) : null; }
+  catch(e){ return null; }
+}
+function saveItems(){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+  updateStorageNote();
+}
+function updateStorageNote(){
+  const bytes = new Blob([localStorage.getItem(STORAGE_KEY)||""]).size;
+  document.getElementById("storageNote").textContent =
+    `共 ${items.length} 個捷徑・佔用約 ${(bytes/1024).toFixed(0)} KB（建議定期匯出備份，照片多時容量會較快用完）`;
+}
+
+function seedItems(){
+  return [
+    { id:"s1", title:"Google", url:"https://www.google.com", image:null, createdAt:Date.now() },
+    { id:"s2", title:"YouTube", url:"https://www.youtube.com", image:null, createdAt:Date.now() }
+  ];
+}
+let items = loadItems();
+if(items === null){ items = seedItems(); saveItems(); }
+
+/* 自動封面（沒上傳照片時使用） */
+function hashStr(s){ let h=0; for(let i=0;i<s.length;i++){ h=(h*31+s.charCodeAt(i))>>>0; } return h; }
+function autoCover(title){
+  title = title || "捷徑";
+  const palettes = [["#F3ECDD","#D9CBA9"],["#E9E3D2","#C9B999"],["#EFE3DE","#D8B7AC"],["#E4E9DA","#B7C6A3"],["#E7E1EC","#C1B2D6"],["#F0E6D8","#D3B98E"]];
+  const [c1,c2] = palettes[hashStr(title) % palettes.length];
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400">
+    <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="${c1}"/><stop offset="1" stop-color="${c2}"/>
+    </linearGradient></defs>
+    <rect width="400" height="400" fill="url(#g)"/>
+    <text x="50%" y="56%" font-size="150" text-anchor="middle" dominant-baseline="middle">🔗</text>
+  </svg>`;
+  return "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svg)));
+}
+
+function compressImage(file, maxDim=800, quality=0.68){
+  return new Promise((resolve, reject)=>{
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        let {width, height} = img;
+        if(width > height && width > maxDim){ height = Math.round(height*maxDim/width); width = maxDim; }
+        else if(height > maxDim){ width = Math.round(width*maxDim/height); height = maxDim; }
+        const canvas = document.createElement("canvas");
+        canvas.width = width; canvas.height = height;
+        canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL("image/jpeg", quality));
+      };
+      img.onerror = reject;
+      img.src = e.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+function escapeHtml(str){ const d=document.createElement("div"); d.textContent=str||""; return d.innerHTML; }
+
+let editMode = false;
+let searchTerm = "";
+
+document.getElementById("editModeBtn").addEventListener("click", ()=>{
+  editMode = !editMode;
+  const b = document.getElementById("editModeBtn");
+  b.classList.toggle("on", editMode);
+  b.textContent = editMode ? "✓ 編輯中" : "✏️ 編輯";
+  renderGrid();
+});
+document.getElementById("searchInput").addEventListener("input", e=>{
+  searchTerm = e.target.value.trim().toLowerCase();
+  renderGrid();
+});
+
+function renderGrid(){
+  const grid = document.getElementById("grid");
+  let list = items;
+  if(searchTerm) list = list.filter(it=>it.title.toLowerCase().includes(searchTerm));
+
+  if(list.length === 0){
+    grid.innerHTML = `<div class="empty-state"><div class="mark">🌱</div>
+      <p>還沒有捷徑，點上面「＋ 新增」<br>加入你常用的網頁吧</p></div>`;
+    updateStorageNote();
+    return;
+  }
+
+  grid.innerHTML = list.map(it=>{
+    const cover = it.image || autoCover(it.title);
+    return `<div class="item" data-id="${it.id}">
+      ${editMode ? `<span class="del-x" data-id="${it.id}">✕</span>` : ""}
+      <img src="${cover}" loading="lazy">
+      <div class="cap">${escapeHtml(it.title)}</div>
+    </div>`;
+  }).join("");
+
+  grid.querySelectorAll(".item").forEach(el=>{
+    el.addEventListener("click", (e)=>{
+      if(e.target.classList.contains("del-x")) return;
+      const id = el.dataset.id;
+      const it = items.find(x=>x.id===id);
+      if(editMode){ openEditor(id); return; }
+      if(it.url) window.open(it.url, "_blank");
+      else openEditor(id);
+    });
+  });
+  grid.querySelectorAll(".del-x").forEach(x=>{
+    x.addEventListener("click", (e)=>{
+      e.stopPropagation();
+      if(confirm("確定刪除這個捷徑嗎？")){
+        items = items.filter(it=>it.id!==x.dataset.id);
+        saveItems(); renderGrid();
+        showToast("已刪除");
+      }
+    });
+  });
+  updateStorageNote();
+}
+
+/* 新增／編輯 */
+let editingId = null;
+let editImage = null;
+
+function openEditor(id){
+  editingId = id || null;
+  const it = id ? items.find(x=>x.id===id) : null;
+  document.getElementById("modalTitle").textContent = it ? "編輯捷徑" : "新增捷徑";
+  document.getElementById("fTitle").value = it ? it.title : "";
+  document.getElementById("fUrl").value = it ? it.url : "";
+  editImage = it ? it.image : null;
+  document.getElementById("coverPreview").src = editImage || autoCover(it ? it.title : "");
+  document.getElementById("fCoverFile").value = "";
+  document.getElementById("deleteBtn").style.display = it ? "inline-block" : "none";
+  document.getElementById("editorOverlay").classList.add("show");
+}
+function closeEditor(){ document.getElementById("editorOverlay").classList.remove("show"); }
+
+document.getElementById("fTitle").addEventListener("input", e=>{
+  if(!editImage) document.getElementById("coverPreview").src = autoCover(e.target.value);
+});
+document.getElementById("fCoverFile").addEventListener("change", async e=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  showToast("圖片壓縮中...");
+  editImage = await compressImage(file);
+  document.getElementById("coverPreview").src = editImage;
+  showToast("封面已更新");
+});
+
+document.getElementById("addBtn").addEventListener("click", ()=> openEditor(null));
+document.getElementById("cancelBtn").addEventListener("click", closeEditor);
+
+document.getElementById("saveBtn").addEventListener("click", ()=>{
+  const title = document.getElementById("fTitle").value.trim();
+  if(!title){ alert("請輸入名稱"); return; }
+  let url = document.getElementById("fUrl").value.trim();
+  if(url && !/^https?:\/\//i.test(url)) url = "https://" + url;
+
+  if(editingId){
+    const it = items.find(x=>x.id===editingId);
+    it.title = title; it.url = url; it.image = editImage;
+  }else{
+    items.push({ id:"i"+Date.now()+Math.random().toString(16).slice(2), title, url, image:editImage, createdAt:Date.now() });
+  }
+  try{ saveItems(); }
+  catch(err){ alert("儲存失敗，可能是空間不足，請先匯出備份、刪除幾張照片再試一次。"); return; }
+  renderGrid(); closeEditor();
+  showToast("已儲存");
+});
+document.getElementById("deleteBtn").addEventListener("click", ()=>{
+  if(!editingId) return;
+  if(confirm("確定刪除這個捷徑嗎？")){
+    items = items.filter(x=>x.id!==editingId);
+    saveItems(); renderGrid(); closeEditor();
+    showToast("已刪除");
+  }
+});
+
+/* 匯出／匯入 */
+document.getElementById("exportBtn").addEventListener("click", ()=>{
+  const blob = new Blob([JSON.stringify(items,null,0)], {type:"application/json"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  const d = new Date();
+  const stamp = `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,"0")}${String(d.getDate()).padStart(2,"0")}`;
+  a.href = url; a.download = `我的捷徑備份_${stamp}.json`; a.click();
+  URL.revokeObjectURL(url);
+  showToast("已匯出備份檔");
+});
+document.getElementById("importBtn").addEventListener("click", ()=> document.getElementById("importFile").click());
+document.getElementById("importFile").addEventListener("change", e=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = evt=>{
+    let imported;
+    try{ imported = JSON.parse(evt.target.result); }
+    catch(err){ alert("檔案格式錯誤，無法匯入。"); return; }
+    if(!Array.isArray(imported)){ alert("檔案內容不是有效的備份格式。"); return; }
+    const mode = confirm("按「確定」＝合併到現有捷徑\n按「取消」＝清空後改用匯入的內容");
+    if(mode){
+      const existingIds = new Set(items.map(x=>x.id));
+      imported.forEach(it=>{ if(!existingIds.has(it.id)) items.push(it); });
+    }else{ items = imported; }
+    saveItems(); renderGrid();
+    showToast("匯入完成");
+  };
+  reader.readAsText(file);
+  e.target.value = "";
+});
+
+let toastTimer = null;
+function showToast(msg){
+  const t = document.getElementById("toast");
+  t.textContent = msg; t.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=> t.classList.remove("show"), 1700);
+}
+
+renderGrid();
+</script>
+</body>
+</html>
