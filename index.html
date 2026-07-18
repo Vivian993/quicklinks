@@ -88,8 +88,16 @@
     border:1px solid var(--line); background:var(--card); color:var(--ink);
   }
   input:focus{ outline:2px solid var(--sage); outline-offset:1px; }
-  .cover-pick{ display:flex; gap:14px; align-items:center; margin-top:8px; }
-  .cover-preview{ width:84px; height:84px; border-radius:14px; object-fit:cover; border:1px solid var(--line); background:var(--paper-warm); }
+  .cover-pick{ display:flex; gap:14px; align-items:flex-start; margin-top:8px; }
+  .cover-preview-wrap{
+    width:120px; height:120px; border-radius:16px; overflow:hidden;
+    border:1px solid var(--line); background:var(--paper-warm); flex:0 0 auto;
+  }
+  .cover-preview{
+    width:100%; height:100%; object-fit:cover; display:block;
+    cursor:grab; touch-action:none; user-select:none; -webkit-user-drag:none;
+  }
+  .cover-preview.dragging{ cursor:grabbing; }
   .hint{ font-size:0.7rem; color:var(--ink-soft); line-height:1.6; margin-top:4px; }
   .modal-actions{ display:flex; gap:10px; margin-top:22px; }
   .modal-actions button{
@@ -140,10 +148,13 @@
 
     <label class="fl">封面圖片</label>
     <div class="cover-pick">
-      <img id="coverPreview" class="cover-preview" src="">
-      <div>
+      <div class="cover-preview-wrap">
+        <img id="coverPreview" class="cover-preview" src="">
+      </div>
+      <div style="flex:1;">
         <input type="file" id="fCoverFile" accept="image/*">
-        <div class="hint">直接從相簿選照片即可，會自動壓縮存在手機本機。沒有上傳的話會自動配一張插畫封面。</div>
+        <div class="hint">直接從相簿選照片即可，會自動壓縮存在手機本機。沒有上傳的話會自動配一張插畫封面。<br>📌 <b>手指按住照片拖曳</b>，可以調整要顯示的位置。</div>
+        <button type="button" class="btn" id="resetPosBtn" style="margin-top:8px; font-size:0.72rem; padding:5px 12px;">重設置中位置</button>
       </div>
     </div>
 
@@ -158,20 +169,72 @@
 <div class="toast" id="toast"></div>
 
 <script>
-const STORAGE_KEY = "quickLinksItems_v1";
+const DB_NAME = "quickLinksDB";
+const DB_STORE = "kv";
+const LEGACY_KEY = "quickLinksItems_v1"; // 舊版 localStorage 資料，會自動搬過來
 
-function loadItems(){
-  try{ const raw = localStorage.getItem(STORAGE_KEY); return raw ? JSON.parse(raw) : null; }
-  catch(e){ return null; }
+function idbOpen(){
+  return new Promise((resolve, reject)=>{
+    const req = indexedDB.open(DB_NAME, 1);
+    req.onupgradeneeded = ()=> req.result.createObjectStore(DB_STORE);
+    req.onsuccess = ()=> resolve(req.result);
+    req.onerror = ()=> reject(req.error);
+  });
 }
-function saveItems(){
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+async function idbGet(key){
+  const db = await idbOpen();
+  return new Promise((resolve, reject)=>{
+    const tx = db.transaction(DB_STORE, "readonly");
+    const req = tx.objectStore(DB_STORE).get(key);
+    req.onsuccess = ()=> resolve(req.result);
+    req.onerror = ()=> reject(req.error);
+  });
+}
+async function idbSet(key, value){
+  const db = await idbOpen();
+  return new Promise((resolve, reject)=>{
+    const tx = db.transaction(DB_STORE, "readwrite");
+    tx.objectStore(DB_STORE).put(value, key);
+    tx.oncomplete = ()=> resolve(true);
+    tx.onerror = ()=> reject(tx.error);
+  });
+}
+
+async function loadItems(){
+  try{
+    const fromDb = await idbGet("items");
+    if(fromDb) return fromDb;
+  }catch(e){ /* IndexedDB 不可用時，往下用舊資料或種子資料 */ }
+
+  // 搬移舊版 localStorage 資料（若存在）
+  try{
+    const legacy = localStorage.getItem(LEGACY_KEY);
+    if(legacy){
+      const parsed = JSON.parse(legacy);
+      await idbSet("items", parsed);
+      localStorage.removeItem(LEGACY_KEY);
+      return parsed;
+    }
+  }catch(e){}
+  return null;
+}
+async function saveItems(){
+  await idbSet("items", items);
   updateStorageNote();
 }
-function updateStorageNote(){
-  const bytes = new Blob([localStorage.getItem(STORAGE_KEY)||""]).size;
+async function updateStorageNote(){
+  const bytes = new Blob([JSON.stringify(items)]).size;
+  let extra = "";
+  if(navigator.storage && navigator.storage.estimate){
+    try{
+      const est = await navigator.storage.estimate();
+      if(est.quota){
+        extra = `（裝置可用空間約 ${(est.quota/1024/1024).toFixed(0)} MB，非常充足）`;
+      }
+    }catch(e){}
+  }
   document.getElementById("storageNote").textContent =
-    `共 ${items.length} 個捷徑・佔用約 ${(bytes/1024).toFixed(0)} KB（建議定期匯出備份，照片多時容量會較快用完）`;
+    `共 ${items.length} 個捷徑・資料約 ${(bytes/1024).toFixed(0)} KB ${extra}`;
 }
 
 function seedItems(){
@@ -180,8 +243,7 @@ function seedItems(){
     { id:"s2", title:"YouTube", url:"https://www.youtube.com", image:null, createdAt:Date.now() }
   ];
 }
-let items = loadItems();
-if(items === null){ items = seedItems(); saveItems(); }
+let items = [];
 
 /* 自動封面（沒上傳照片時使用） */
 function hashStr(s){ let h=0; for(let i=0;i<s.length;i++){ h=(h*31+s.charCodeAt(i))>>>0; } return h; }
@@ -199,7 +261,7 @@ function autoCover(title){
   return "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svg)));
 }
 
-function compressImage(file, maxDim=800, quality=0.68){
+function compressImage(file, maxDim=640, quality=0.6){
   return new Promise((resolve, reject)=>{
     const reader = new FileReader();
     reader.onload = e => {
@@ -252,9 +314,10 @@ function renderGrid(){
 
   grid.innerHTML = list.map(it=>{
     const cover = it.image || autoCover(it.title);
+    const pos = it.image && it.pos ? `${it.pos.x}% ${it.pos.y}%` : "50% 50%";
     return `<div class="item" data-id="${it.id}">
       ${editMode ? `<span class="del-x" data-id="${it.id}">✕</span>` : ""}
-      <img src="${cover}" loading="lazy">
+      <img src="${cover}" style="object-position:${pos};" loading="lazy">
       <div class="cap">${escapeHtml(it.title)}</div>
     </div>`;
   }).join("");
@@ -270,11 +333,11 @@ function renderGrid(){
     });
   });
   grid.querySelectorAll(".del-x").forEach(x=>{
-    x.addEventListener("click", (e)=>{
+    x.addEventListener("click", async (e)=>{
       e.stopPropagation();
       if(confirm("確定刪除這個捷徑嗎？")){
         items = items.filter(it=>it.id!==x.dataset.id);
-        saveItems(); renderGrid();
+        await saveItems(); renderGrid();
         showToast("已刪除");
       }
     });
@@ -285,6 +348,43 @@ function renderGrid(){
 /* 新增／編輯 */
 let editingId = null;
 let editImage = null;
+let editPos = {x:50, y:50};
+
+function applyPreviewPosition(){
+  document.getElementById("coverPreview").style.objectPosition = `${editPos.x}% ${editPos.y}%`;
+}
+
+(function setupDrag(){
+  const img = document.getElementById("coverPreview");
+  let dragging = false, startX = 0, startY = 0, startPos = {x:50,y:50};
+
+  function onDown(clientX, clientY){
+    dragging = true;
+    startX = clientX; startY = clientY;
+    startPos = {...editPos};
+    img.classList.add("dragging");
+  }
+  function onMove(clientX, clientY){
+    if(!dragging) return;
+    const rect = img.getBoundingClientRect();
+    const dxPercent = ((clientX - startX) / rect.width) * 100;
+    const dyPercent = ((clientY - startY) / rect.height) * 100;
+    editPos.x = Math.max(0, Math.min(100, startPos.x - dxPercent));
+    editPos.y = Math.max(0, Math.min(100, startPos.y - dyPercent));
+    applyPreviewPosition();
+  }
+  function onUp(){ dragging = false; img.classList.remove("dragging"); }
+
+  img.addEventListener("pointerdown", e=>{ img.setPointerCapture(e.pointerId); onDown(e.clientX, e.clientY); });
+  img.addEventListener("pointermove", e=> onMove(e.clientX, e.clientY));
+  img.addEventListener("pointerup", onUp);
+  img.addEventListener("pointercancel", onUp);
+})();
+
+document.getElementById("resetPosBtn").addEventListener("click", ()=>{
+  editPos = {x:50, y:50};
+  applyPreviewPosition();
+});
 
 function openEditor(id){
   editingId = id || null;
@@ -293,7 +393,9 @@ function openEditor(id){
   document.getElementById("fTitle").value = it ? it.title : "";
   document.getElementById("fUrl").value = it ? it.url : "";
   editImage = it ? it.image : null;
+  editPos = it && it.pos ? {...it.pos} : {x:50, y:50};
   document.getElementById("coverPreview").src = editImage || autoCover(it ? it.title : "");
+  applyPreviewPosition();
   document.getElementById("fCoverFile").value = "";
   document.getElementById("deleteBtn").style.display = it ? "inline-block" : "none";
   document.getElementById("editorOverlay").classList.add("show");
@@ -308,14 +410,16 @@ document.getElementById("fCoverFile").addEventListener("change", async e=>{
   if(!file) return;
   showToast("圖片壓縮中...");
   editImage = await compressImage(file);
+  editPos = {x:50, y:50};
   document.getElementById("coverPreview").src = editImage;
-  showToast("封面已更新");
+  applyPreviewPosition();
+  showToast("封面已更新，可拖曳調整位置");
 });
 
 document.getElementById("addBtn").addEventListener("click", ()=> openEditor(null));
 document.getElementById("cancelBtn").addEventListener("click", closeEditor);
 
-document.getElementById("saveBtn").addEventListener("click", ()=>{
+document.getElementById("saveBtn").addEventListener("click", async ()=>{
   const title = document.getElementById("fTitle").value.trim();
   if(!title){ alert("請輸入名稱"); return; }
   let url = document.getElementById("fUrl").value.trim();
@@ -323,20 +427,20 @@ document.getElementById("saveBtn").addEventListener("click", ()=>{
 
   if(editingId){
     const it = items.find(x=>x.id===editingId);
-    it.title = title; it.url = url; it.image = editImage;
+    it.title = title; it.url = url; it.image = editImage; it.pos = editPos;
   }else{
-    items.push({ id:"i"+Date.now()+Math.random().toString(16).slice(2), title, url, image:editImage, createdAt:Date.now() });
+    items.push({ id:"i"+Date.now()+Math.random().toString(16).slice(2), title, url, image:editImage, pos:editPos, createdAt:Date.now() });
   }
-  try{ saveItems(); }
-  catch(err){ alert("儲存失敗，可能是空間不足，請先匯出備份、刪除幾張照片再試一次。"); return; }
+  try{ await saveItems(); }
+  catch(err){ alert("儲存失敗，請先匯出備份、刪除幾張照片再試一次。"); return; }
   renderGrid(); closeEditor();
   showToast("已儲存");
 });
-document.getElementById("deleteBtn").addEventListener("click", ()=>{
+document.getElementById("deleteBtn").addEventListener("click", async ()=>{
   if(!editingId) return;
   if(confirm("確定刪除這個捷徑嗎？")){
     items = items.filter(x=>x.id!==editingId);
-    saveItems(); renderGrid(); closeEditor();
+    await saveItems(); renderGrid(); closeEditor();
     showToast("已刪除");
   }
 });
@@ -357,7 +461,7 @@ document.getElementById("importFile").addEventListener("change", e=>{
   const file = e.target.files[0];
   if(!file) return;
   const reader = new FileReader();
-  reader.onload = evt=>{
+  reader.onload = async evt=>{
     let imported;
     try{ imported = JSON.parse(evt.target.result); }
     catch(err){ alert("檔案格式錯誤，無法匯入。"); return; }
@@ -367,7 +471,7 @@ document.getElementById("importFile").addEventListener("change", e=>{
       const existingIds = new Set(items.map(x=>x.id));
       imported.forEach(it=>{ if(!existingIds.has(it.id)) items.push(it); });
     }else{ items = imported; }
-    saveItems(); renderGrid();
+    await saveItems(); renderGrid();
     showToast("匯入完成");
   };
   reader.readAsText(file);
@@ -382,7 +486,13 @@ function showToast(msg){
   toastTimer = setTimeout(()=> t.classList.remove("show"), 1700);
 }
 
-renderGrid();
+(async function init(){
+  const loaded = await loadItems();
+  items = loaded !== null ? loaded : seedItems();
+  if(loaded === null) await saveItems();
+  renderGrid();
+  updateStorageNote();
+})();
 </script>
 </body>
 </html>
