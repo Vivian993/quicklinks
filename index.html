@@ -152,6 +152,7 @@
     border:2px solid var(--line); background:var(--card); color:var(--ink-soft); cursor:pointer;
   }
   .chip-choice.selected{ color:#fff; border-color:transparent; }
+  .chip-choice.more-toggle{ background:var(--paper-warm); color:var(--sage-deep); font-weight:600; border-style:dashed; }
 
   .toggle-row{ display:flex; align-items:center; gap:10px; margin-top:14px; font-size:0.8rem; color:var(--ink); }
   .toggle-row input{ width:18px; height:18px; }
@@ -341,7 +342,7 @@ const DEFAULT_SUBJECTS = [
   {id:"science", label:"自然", icon:"🔬", color:"#4FA37A"},
   {id:"social",  label:"社會", icon:"🌍", color:"#9B7FC0"},
 ];
-const SUB_ICON_CHOICES = ["📕","🔤","🧮","🔬","🌍","🎨","🎼","🏃","💻","🧵","🪁","🧭","🔭","🧶","🖌️","🗺️","🪄","🎯","📐","🧪"];
+const SUB_ICON_CHOICES = ["📕","🔤","🧮","🔬","🌍","🎨","🎼","🏃","💻","📐","✏️","📝","🧠","🖥","🏫","🎬","📺","📷","🍜","🤖","🧵","🪁","🧭","🔭","🧶","🖌️","🗺️","🪄","🎯","🧪"];
 const SUB_COLOR_CHOICES = ["#D97B6C","#5B8FC7","#C79A3F","#4FA37A","#9B7FC0","#4FA8A0","#C0708F","#7A8FA6","#B08858","#6E9E6E","#A66E9E","#8C9E4F","#5F9EBF","#BF8F5F","#7E6EA6","#5FA6A0"];
 let SUBJECTS = [];
 function subjectOf(id){ return SUBJECTS.find(s=>s.id===id); }
@@ -354,7 +355,7 @@ const DEFAULT_CATEGORIES = [
   {id:"life",  label:"生活",       icon:"🌿", color:"#6FBF9A"},
   {id:"other", label:"其他",       icon:"📌", color:"#A98FC9"},
 ];
-const CAT_ICON_CHOICES = ["🌐","🎬","🎲","📖","🌿","📌","🎨","📋","🔖","📱","💰","📓","🧩","🎵","🏛️","🧮","🔬","☁️","📷","🤖","🪴","🎐","🧭","🪄","🔭","🧶","🖌️","🗂️","🧾","🪙","🧳","🛠️","🔧","🩹","🎯","🕹️","🖼️","🎧","🍀","🌙","⭐","🔥","💡","🌈","🧊","🪁","🧵","📐","🧪"];
+const CAT_ICON_CHOICES = ["🎬","🌐","🖨","📐","✂","📺","💾","📷","🧮","📌","📖","🍜","📝","🤖","👧🏻","🥷","🖥","🏫","🎮","🧠","🎨","✏️","🌍","💻","🎲","🌿","📋","🔖","📱","💰","📓","🧩","🎵","🏛️","🔬","☁️","🪴","🎐","🧭","🪄","🔭","🧶","🖌️","🗂️","🧾","🪙","🧳","🛠️","🔧","🩹","🎯","🕹️","🖼️","🎧","🍀","🌙","⭐","🔥","💡","🌈","🧊","🪁","🧵","🧪"];
 const CAT_COLOR_CHOICES = ["#6C9BD9","#E8896B","#D9A93F","#7C9270","#6FBF9A","#A98FC9","#D97B6C","#9B7FC0","#4FA37A","#C97F6E","#4FA8A0","#C0708F","#7A8FA6","#B08858","#6E9E6E","#A66E9E","#8C9E4F","#5F9EBF","#BF8F5F","#7E6EA6"];
 
 let CATEGORIES = [];
@@ -910,10 +911,25 @@ function resetCatEditState(){
   renderCatPickers();
 }
 function renderCatPickers(){
-  document.getElementById("newCatEmojiRow").innerHTML = CAT_ICON_CHOICES.map(e=>`<div class="chip-choice" data-e="${e}">${e}</div>`).join("");
+  const VISIBLE_COUNT = 16;
+  const main = CAT_ICON_CHOICES.slice(0, VISIBLE_COUNT);
+  const extra = CAT_ICON_CHOICES.slice(VISIBLE_COUNT);
+  const emojiHtml = main.map(e=>`<div class="chip-choice" data-e="${e}">${e}</div>`).join("")
+    + (extra.length ? `<div class="chip-choice more-toggle" id="catMoreToggle">⋯ 更多</div>` : "")
+    + extra.map(e=>`<div class="chip-choice extra-icon" data-e="${e}" style="display:none;">${e}</div>`).join("");
+  document.getElementById("newCatEmojiRow").innerHTML = emojiHtml;
   document.getElementById("newCatColorRow").innerHTML = CAT_COLOR_CHOICES.map(c=>`<div class="chip-choice" data-c="${c}" style="background:${c};width:30px;height:30px;padding:0;border-radius:50%;"></div>`).join("");
-  document.querySelectorAll("#newCatEmojiRow .chip-choice").forEach(el=>{
-    if(el.dataset.e === pickedCatEmoji) el.classList.add("selected");
+  const moreBtn = document.getElementById("catMoreToggle");
+  if(moreBtn){
+    moreBtn.addEventListener("click", ()=>{
+      const showing = moreBtn.dataset.open === "1";
+      document.querySelectorAll("#newCatEmojiRow .extra-icon").forEach(el=> el.style.display = showing ? "none" : "flex");
+      moreBtn.textContent = showing ? "⋯ 更多" : "收起";
+      moreBtn.dataset.open = showing ? "0" : "1";
+    });
+  }
+  document.querySelectorAll("#newCatEmojiRow .chip-choice[data-e]").forEach(el=>{
+    if(el.dataset.e === pickedCatEmoji){ el.classList.add("selected"); el.style.display="flex"; }
     el.addEventListener("click", ()=>{ pickedCatEmoji = el.dataset.e; document.querySelectorAll("#newCatEmojiRow .chip-choice").forEach(x=>x.classList.remove("selected")); el.classList.add("selected"); });
   });
   document.querySelectorAll("#newCatColorRow .chip-choice").forEach(el=>{
@@ -998,10 +1014,25 @@ function resetSubEditState(){
   renderSubPickers();
 }
 function renderSubPickers(){
-  document.getElementById("newSubEmojiRow").innerHTML = SUB_ICON_CHOICES.map(e=>`<div class="chip-choice" data-e="${e}">${e}</div>`).join("");
+  const VISIBLE_COUNT = 14;
+  const main = SUB_ICON_CHOICES.slice(0, VISIBLE_COUNT);
+  const extra = SUB_ICON_CHOICES.slice(VISIBLE_COUNT);
+  const emojiHtml = main.map(e=>`<div class="chip-choice" data-e="${e}">${e}</div>`).join("")
+    + (extra.length ? `<div class="chip-choice more-toggle" id="subMoreToggle">⋯ 更多</div>` : "")
+    + extra.map(e=>`<div class="chip-choice extra-icon" data-e="${e}" style="display:none;">${e}</div>`).join("");
+  document.getElementById("newSubEmojiRow").innerHTML = emojiHtml;
   document.getElementById("newSubColorRow").innerHTML = SUB_COLOR_CHOICES.map(c=>`<div class="chip-choice" data-c="${c}" style="background:${c};width:30px;height:30px;padding:0;border-radius:50%;"></div>`).join("");
-  document.querySelectorAll("#newSubEmojiRow .chip-choice").forEach(el=>{
-    if(el.dataset.e === pickedSubEmoji) el.classList.add("selected");
+  const moreBtn = document.getElementById("subMoreToggle");
+  if(moreBtn){
+    moreBtn.addEventListener("click", ()=>{
+      const showing = moreBtn.dataset.open === "1";
+      document.querySelectorAll("#newSubEmojiRow .extra-icon").forEach(el=> el.style.display = showing ? "none" : "flex");
+      moreBtn.textContent = showing ? "⋯ 更多" : "收起";
+      moreBtn.dataset.open = showing ? "0" : "1";
+    });
+  }
+  document.querySelectorAll("#newSubEmojiRow .chip-choice[data-e]").forEach(el=>{
+    if(el.dataset.e === pickedSubEmoji){ el.classList.add("selected"); el.style.display="flex"; }
     el.addEventListener("click", ()=>{ pickedSubEmoji = el.dataset.e; document.querySelectorAll("#newSubEmojiRow .chip-choice").forEach(x=>x.classList.remove("selected")); el.classList.add("selected"); });
   });
   document.querySelectorAll("#newSubColorRow .chip-choice").forEach(el=>{
